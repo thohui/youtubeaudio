@@ -2,7 +2,6 @@ package webserver
 
 import (
 	"encoding/json"
-	"fmt"
 	"regexp"
 
 	"github.com/gofiber/fiber/v2"
@@ -36,6 +35,12 @@ func (s *Webserver) Start() {
 	s.fiber.Listen(":80")
 }
 
+type response struct {
+	Success  bool   `json:"success"`
+	Message  string `json:"message"`
+	Location string `json:"location,omitempty"`
+}
+
 func (s *Webserver) setupRoutes() {
 	s.fiber.Use(cors.New())
 	s.fiber.Post("/convert", func(c *fiber.Ctx) error {
@@ -45,32 +50,55 @@ func (s *Webserver) setupRoutes() {
 		}
 		var b body
 		if err := c.BodyParser(&b); err != nil {
-			c.Status(fiber.StatusBadRequest).SendString("Invalid request body")
+			c.Status(fiber.StatusBadRequest).JSON(response{
+				Success: false,
+				Message: "Invalid request body",
+			})
 		}
 		match := youtubeRegex.FindStringSubmatch(b.URL)
 		if len(match) < 2 {
-			return c.Status(fiber.StatusBadRequest).SendString("Invalid youtube URL")
+			return c.Status(fiber.StatusBadRequest).JSON(response{
+				Success: false,
+				Message: "Invalid youtube url"},
+			)
 		}
 		videoID := match[1]
 		if !s.validator.ValidateURL(videoID) {
-			fmt.Println("invalid yt url")
-			return c.Status(fiber.StatusBadRequest).SendString("Invalid youtube URL")
+			return c.Status(fiber.StatusBadRequest).JSON(response{
+				Success: false,
+				Message: "Invalid youtube url"},
+			)
 		}
 
 		job := make(chan []byte)
 		if err := s.mqClient.Publish(b.URL, job); err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString("Failed to publish message")
+			return c.Status(fiber.StatusInternalServerError).JSON(response{
+				Success: false,
+				Message: "Internal server error",
+			})
 		}
 		//TODO: timeout
 		msg := <-job
 		r := &structures.WorkerResponse{}
 		err := json.Unmarshal(msg, &r)
 		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).SendString("Failed to parse response")
+			return c.Status(fiber.StatusInternalServerError).JSON(response{
+				Success: false,
+				Message: "Internal Server Error",
+			})
 		}
 		if !r.Success {
-			return c.Status(fiber.StatusInternalServerError).SendString("Failed to convert video")
+			return c.Status(fiber.StatusInternalServerError).JSON(
+				response{
+					Success: false,
+					Message: "Internal Server Error",
+				},
+			)
 		}
-		return c.Status(fiber.StatusOK).Send(msg)
+		return c.Status(fiber.StatusOK).JSON(response{
+			Success:  true,
+			Message:  "Success",
+			Location: r.Location,
+		})
 	})
 }
