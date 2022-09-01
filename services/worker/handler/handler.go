@@ -6,9 +6,9 @@ import (
 
 	"github.com/streadway/amqp"
 	"github.com/thohui/youtubeaudio/internal/structures"
+	"github.com/thohui/youtubeaudio/services/worker/download"
 	"github.com/thohui/youtubeaudio/services/worker/mq"
 	"github.com/thohui/youtubeaudio/services/worker/s3"
-	"github.com/thohui/youtubeaudio/services/worker/yt"
 )
 
 type Handler struct {
@@ -36,7 +36,7 @@ func (h *Handler) Start() {
 }
 
 func (h *Handler) handle(msg amqp.Delivery) {
-	file, err := yt.DownloadAudio(string(msg.Body))
+	file, err := download.DownloadAudio(string(msg.Body))
 	response := &structures.WorkerResponse{}
 	if err == nil {
 		location, err := h.s3client.Upload(file.Name, file.Path)

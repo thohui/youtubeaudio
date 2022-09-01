@@ -1,4 +1,4 @@
-package yt
+package download
 
 import (
 	"os"
