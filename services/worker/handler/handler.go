@@ -36,10 +36,15 @@ func (h *Handler) Start() {
 }
 
 func (h *Handler) handle(msg amqp.Delivery) {
-	file, err := download.DownloadAudio(string(msg.Body))
+	var pl structures.BackendPublishPayload
+	err := json.Unmarshal(msg.Body, &pl)
+	if err != nil {
+		return
+	}
+	path, err := download.DownloadAudio(pl.URL)
 	response := &structures.WorkerResponse{}
 	if err == nil {
-		location, err := h.s3client.Upload(file.Name, file.Path)
+		location, err := h.s3client.Upload(pl.Title+".mp3", path)
 		if err == nil {
 			response.Success = true
 			response.Location = location
