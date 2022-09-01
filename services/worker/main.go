@@ -13,7 +13,7 @@ func main() {
 	endpoint := os.Getenv("S3_ENDPOINT")
 	region := os.Getenv("S3_REGION")
 	keyId := os.Getenv("S3_KEY_ID")
-	applicationKey := os.Getenv("S3_ACCESS_KEY")
+	applicationKey := os.Getenv("S3_APPLICATION_KEY")
 	bucketName := os.Getenv("S3_BUCKET_NAME")
 
 	s3client, err := s3.New(endpoint, region, keyId, applicationKey, "", bucketName)
