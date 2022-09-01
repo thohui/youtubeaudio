@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/streadway/amqp"
+	"github.com/thohui/youtubeaudio/internal/structures"
 	"github.com/thohui/youtubeaudio/services/worker/mq"
 	"github.com/thohui/youtubeaudio/services/worker/s3"
 	"github.com/thohui/youtubeaudio/services/worker/yt"
@@ -22,11 +23,6 @@ func New(client *mq.Client, s3Client *s3.Client) *Handler {
 	}
 }
 
-type response struct {
-	Success  bool   `json:"success"`
-	Location string `json:"location"`
-}
-
 func (h *Handler) Start() {
 	messages, err := h.client.Consume()
 	if err != nil {
@@ -41,7 +37,7 @@ func (h *Handler) Start() {
 
 func (h *Handler) handle(msg amqp.Delivery) {
 	file, err := yt.DownloadAudio(string(msg.Body))
-	response := &response{}
+	response := &structures.WorkerResponse{}
 	if err == nil {
 		location, err := h.s3client.Upload(file.Name, file.Path)
 		if err == nil {

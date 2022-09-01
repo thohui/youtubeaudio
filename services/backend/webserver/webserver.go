@@ -1,10 +1,12 @@
 package webserver
 
 import (
+	"encoding/json"
 	"regexp"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/thohui/youtubeaudio/internal/structures"
 	"github.com/thohui/youtubeaudio/services/backend/mq"
 )
 
@@ -51,6 +53,14 @@ func (s *Webserver) setupRoutes() {
 		}
 		//TODO: timeout
 		msg := <-job
+		r := &structures.WorkerResponse{}
+		err := json.Unmarshal(msg, &r)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).SendString("Failed to parse response")
+		}
+		if !r.Success {
+			return c.Status(fiber.StatusInternalServerError).SendString("Failed to convert video")
+		}
 		return c.Status(fiber.StatusOK).Send(msg)
 	})
 }
