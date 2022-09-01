@@ -63,15 +63,20 @@ func (s *Webserver) setupRoutes() {
 			)
 		}
 		videoID := match[1]
-		if !s.validator.ValidateURL(videoID) {
+		video, err := s.validator.ValidateURL(videoID)
+		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(response{
 				Success: false,
 				Message: "Invalid youtube url"},
 			)
 		}
 
+		payload := structures.BackendPublishPayload{
+			URL:   b.URL,
+			Title: video.Snippet.Title,
+		}
 		job := make(chan []byte)
-		if err := s.mqClient.Publish(b.URL, job); err != nil {
+		if err := s.mqClient.Publish(payload, job); err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(response{
 				Success: false,
 				Message: "Internal server error",
@@ -80,7 +85,7 @@ func (s *Webserver) setupRoutes() {
 		//TODO: timeout
 		msg := <-job
 		r := &structures.WorkerResponse{}
-		err := json.Unmarshal(msg, &r)
+		err = json.Unmarshal(msg, &r)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(response{
 				Success: false,

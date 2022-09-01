@@ -2,6 +2,7 @@ package youtube
 
 import (
 	"context"
+	"errors"
 
 	"google.golang.org/api/option"
 	"google.golang.org/api/youtube/v3"
@@ -19,10 +20,13 @@ func New(youtubeApiKey string) (*YoutubeValidator, error) {
 	return &YoutubeValidator{youtubeService: service}, nil
 }
 
-func (v *YoutubeValidator) ValidateURL(videoURL string) bool {
-	res, err := v.youtubeService.Videos.List([]string{"id"}).Id(videoURL).Do()
+func (v *YoutubeValidator) ValidateURL(videoID string) (*youtube.Video, error) {
+	res, err := v.youtubeService.Videos.List([]string{"id", "snippet"}).Id(videoID).Do()
 	if err != nil {
-		return false
+		return nil, err
 	}
-	return len(res.Items) > 0
+	if len(res.Items) == 0 {
+		return nil, errors.New("could not find video with id " + videoID)
+	}
+	return res.Items[0], nil
 }

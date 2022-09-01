@@ -1,10 +1,12 @@
 package mq
 
 import (
+	"encoding/json"
 	"sync"
 
 	"github.com/lithammer/shortuuid"
 	"github.com/streadway/amqp"
+	"github.com/thohui/youtubeaudio/internal/structures"
 )
 
 type Client struct {
@@ -35,7 +37,11 @@ func New(uri string, queueName string) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) Publish(videoURL string, job chan<- []byte) error {
+func (c *Client) Publish(pl structures.BackendPublishPayload, job chan<- []byte) error {
+	data, err := json.Marshal(pl)
+	if err != nil {
+		return err
+	}
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	random := shortuuid.New()
@@ -48,8 +54,8 @@ func (c *Client) Publish(videoURL string, job chan<- []byte) error {
 		amqp.Publishing{
 			ReplyTo:       c.rpcQueueName,
 			CorrelationId: random,
-			ContentType:   "text/plain",
-			Body:          []byte(videoURL),
+			ContentType:   "application/json",
+			Body:          data,
 		})
 }
 
