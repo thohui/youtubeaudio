@@ -2,12 +2,14 @@ package webserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"regexp"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/thohui/youtubeaudio/internal/structures"
 	"github.com/thohui/youtubeaudio/services/backend/mq"
+	"github.com/thohui/youtubeaudio/services/backend/youtube"
 )
 
 var (
@@ -15,14 +17,16 @@ var (
 )
 
 type Webserver struct {
-	fiber    *fiber.App
-	mqClient *mq.Client
+	fiber     *fiber.App
+	mqClient  *mq.Client
+	validator *youtube.YoutubeValidator
 }
 
-func New(mqClient *mq.Client) *Webserver {
+func New(mqClient *mq.Client, youtubeValidator *youtube.YoutubeValidator) *Webserver {
 	server := &Webserver{
-		fiber:    fiber.New(),
-		mqClient: mqClient,
+		fiber:     fiber.New(),
+		mqClient:  mqClient,
+		validator: youtubeValidator,
 	}
 	server.setupRoutes()
 	return server
@@ -43,10 +47,16 @@ func (s *Webserver) setupRoutes() {
 		if err := c.BodyParser(&b); err != nil {
 			c.Status(fiber.StatusBadRequest).SendString("Invalid request body")
 		}
-		match := youtubeRegex.MatchString(b.URL)
-		if !match {
+		match := youtubeRegex.FindStringSubmatch(b.URL)
+		if len(match) < 2 {
 			return c.Status(fiber.StatusBadRequest).SendString("Invalid youtube URL")
 		}
+		videoID := match[1]
+		if !s.validator.ValidateURL(videoID) {
+			fmt.Println("invalid yt url")
+			return c.Status(fiber.StatusBadRequest).SendString("Invalid youtube URL")
+		}
+
 		job := make(chan []byte)
 		if err := s.mqClient.Publish(b.URL, job); err != nil {
 			return c.Status(fiber.StatusInternalServerError).SendString("Failed to publish message")
