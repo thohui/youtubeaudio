@@ -15,7 +15,11 @@ export const Form = () => {
     youtubeURL: string;
   }
   const { mutate, isRequesting, isError } = useDownload();
-  const { register, handleSubmit } = useForm<FormData>();
+  const {
+    register,
+    handleSubmit,
+    formState: {},
+  } = useForm<FormData>();
 
   return (
     <Box>
@@ -30,10 +34,13 @@ export const Form = () => {
               required: true,
             })}
           />
-          <Button type="submit" disabled={isRequesting}>
-            Submit
-          </Button>
-          {isRequesting && <Spinner size={"xl"} />}
+          {isRequesting ? (
+            <Spinner size={"xl"} />
+          ) : (
+            <Button type="submit" disabled={isRequesting}>
+              Submit
+            </Button>
+          )}
         </FormControl>
       </form>
     </Box>
@@ -46,7 +53,8 @@ const useDownload = () => {
 
   interface ServerResponse {
     success: boolean;
-    location: string;
+    message: string;
+    location?: string;
   }
 
   const mutate = (videoURL: string) => {
@@ -67,6 +75,7 @@ const useDownload = () => {
           const data: ServerResponse = await response.json();
           if (data && data.success) {
             window.open(data.location, "_blank")?.focus();
+            window.location.reload();
           }
         } else {
           setIsError(true);
