@@ -51,10 +51,5 @@ func (h *Handler) handle(msg amqp.Delivery) {
 		}
 	}
 	data, _ := json.Marshal(response)
-	h.client.Channel.Publish("", msg.ReplyTo, false, false, amqp.Publishing{
-		ContentType:   "application/json",
-		Body:          data,
-		ReplyTo:       msg.ReplyTo,
-		CorrelationId: msg.CorrelationId,
-	})
+	h.client.PublishResponse(msg.ReplyTo, msg.CorrelationId, data)
 }
