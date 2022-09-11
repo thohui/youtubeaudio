@@ -32,7 +32,10 @@ func New(mqClient *mq.Client, youtubeValidator *youtube.YoutubeValidator) *Webse
 }
 
 func (s *Webserver) Start() {
-	s.fiber.Listen(":80")
+	err := s.fiber.Listen(":80")
+	if err != nil {
+		panic(err)
+	}
 }
 
 type response struct {
