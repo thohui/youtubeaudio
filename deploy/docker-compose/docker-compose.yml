@@ -1,0 +1,42 @@
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.10-management
+    ports: 
+      - 15672:15672
+    networks:
+      - internal
+  backend:
+    image: backend:latest
+    ports:
+      - "80:80"
+    environment:
+      - RABBITMQ_URI=
+      - RABBITMQ_QUEUE=
+      - YOUTUBE_API_KEY=
+    depends_on: 
+      - rabbitmq
+    networks:
+      - internal
+    deploy:
+      restart_policy:
+        condition: always
+        delay: 5s
+  worker:
+    image: worker:latest
+    depends_on:
+      - rabbitmq
+    environment:
+      - RABBITMQ_URI=
+      - S3_ENDPOINT=
+      - S3_REGION=
+      - S3_APPLICATION_KEY=
+      - S3_BUCKET_NAME=
+    networks:
+      - internal 
+    deploy:
+      restart_policy:
+        condition: always
+        delay: 5s
+networks:
+  internal:
