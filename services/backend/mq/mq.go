@@ -85,7 +85,12 @@ func (c *Client) HandleMessages() {
 	}
 	for msg := range messages {
 		c.mutex.Lock()
-		c.jobs[msg.CorrelationId] <- msg.Body
+		job, ok := c.jobs[msg.CorrelationId]
+		if !ok {
+			continue
+		}
+		job <- msg.Body
+		close(job)
 		delete(c.jobs, msg.CorrelationId)
 		c.mutex.Unlock()
 	}

@@ -78,7 +78,7 @@ func (s *Webserver) setupRoutes() {
 			URL:   b.URL,
 			Title: video.Snippet.Title,
 		}
-		job := make(chan []byte)
+		job := make(chan []byte, 1)
 		if err := s.mqClient.Publish(payload, job); err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(response{
 				Success: false,
